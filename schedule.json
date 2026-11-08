@@ -1,0 +1,176 @@
+{
+  "group": "25-407",
+  "lessons": [
+    {
+      "day": 1,
+      "start": "08:00",
+      "end": "09:20",
+      "subject": "Programming (Python) Level 4 (Practice)",
+      "teacher": "Bekdurdiyev Boburjon",
+      "room": "231 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 1,
+      "start": "09:30",
+      "end": "10:50",
+      "subject": "English",
+      "teacher": "Sobirov Nosirjon Gulamovich",
+      "room": "219 Room",
+      "groups": [
+        "25-407 (22)"
+      ],
+      "source": "english"
+    },
+    {
+      "day": 1,
+      "start": "11:00",
+      "end": "12:20",
+      "subject": "Big Data & Visualization",
+      "teacher": "Qurbonov Behzod",
+      "room": "222 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 1,
+      "start": "13:30",
+      "end": "14:50",
+      "subject": "Professional Practice in the Digital Economy",
+      "teacher": "Kamolov Azizbek",
+      "room": "323 Lecture Room",
+      "groups": [
+        "25-406 (UZ)",
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 2,
+      "start": "09:30",
+      "end": "10:50",
+      "subject": "Big Data & Visualization",
+      "teacher": "Qurbonov Behzod",
+      "room": "221 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 2,
+      "start": "11:00",
+      "end": "12:20",
+      "subject": "Programming (Python) Level 4 (Practice)",
+      "teacher": "Bekdurdiyev Boburjon",
+      "room": "222 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 3,
+      "start": "08:00",
+      "end": "09:20",
+      "subject": "English",
+      "teacher": "Sobirov Nosirjon Gulamovich",
+      "room": "219 Room",
+      "groups": [
+        "25-407 (22)"
+      ],
+      "source": "english"
+    },
+    {
+      "day": 3,
+      "start": "09:30",
+      "end": "10:50",
+      "subject": "Programming (Python) Level 4 (Lecture)",
+      "teacher": "Bekdurdiyev Boburjon",
+      "room": "133 Lecture Room",
+      "groups": [
+        "25-407 (UZ)",
+        "25-408 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 4,
+      "start": "08:00",
+      "end": "09:20",
+      "subject": "Database Design & Development",
+      "teacher": "Uzoqov Lochinbek",
+      "room": "222 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 4,
+      "start": "09:30",
+      "end": "10:50",
+      "subject": "Programming (Python) Level 4 (Lecture)",
+      "teacher": "Bekdurdiyev Boburjon",
+      "room": "236 Lecture Room",
+      "groups": [
+        "25-407 (UZ)",
+        "25-408 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 4,
+      "start": "11:00",
+      "end": "12:20",
+      "subject": "Database Design & Development",
+      "teacher": "Uzoqov Lochinbek",
+      "room": "222 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 5,
+      "start": "08:00",
+      "end": "09:20",
+      "subject": "Programming (Python) Level 4 (Practice)",
+      "teacher": "Bekdurdiyev Boburjon",
+      "room": "229 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 5,
+      "start": "09:30",
+      "end": "10:50",
+      "subject": "Programming (Python) Level 4 (Practice)",
+      "teacher": "Bekdurdiyev Boburjon",
+      "room": "230 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    },
+    {
+      "day": 5,
+      "start": "11:00",
+      "end": "12:20",
+      "subject": "Database Design & Development",
+      "teacher": "Uzoqov Lochinbek",
+      "room": "233 Room",
+      "groups": [
+        "25-407 (UZ)"
+      ],
+      "source": "main"
+    }
+  ]
+}
