@@ -12,6 +12,8 @@ import json
 import logging
 import os
 import re
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -41,7 +43,8 @@ REMIND_MIN = int(os.getenv("REMIND_MINUTES", "10"))
 SEND_ON_FREE_DAYS = os.getenv("SEND_ON_FREE_DAYS", "1") == "1"
 STATE_FILE = Path(os.getenv("STATE_FILE", BASE / "state.json"))
 TICK_SECONDS = 30  # jadval har 30 soniyada tekshiriladi
-GRACE_SECONDS = 120  # bot biroz kechiksa ham eslatma yuboriladi, lekin undan keyin emas
+GRACE_SECONDS = 300  # bot biroz kechiksa (uxlab turgan bo'lsa) ham eslatma yuboriladi, lekin undan keyin emas
+PORT = int(os.getenv("PORT", "10000"))  # Render shu portni kutadi
 
 log = logging.getLogger("dars-bot")
 
@@ -304,11 +307,25 @@ WELCOME = (
 # --------------------------------------------------------------------------- #
 #  Holat (obunachilar + yuborilgan eslatmalar)
 # --------------------------------------------------------------------------- #
+def env_subscribers() -> list[int]:
+    """SUBSCRIBERS=123,456 — Render qayta ishga tushganda fayl o'chib ketgani uchun, doimiy obunachilar shu yerda."""
+    out = []
+    for part in os.getenv("SUBSCRIBERS", "").replace(";", ",").split(","):
+        part = part.strip()
+        if part.lstrip("-").isdigit():
+            out.append(int(part))
+    return out
+
+
 def load_state() -> dict:
     try:
-        return json.loads(STATE_FILE.read_text(encoding="utf-8"))
+        state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
-        return {"subscribers": [], "sent": []}
+        state = {"subscribers": [], "sent": []}
+    for cid in env_subscribers():
+        if cid not in state["subscribers"]:
+            state["subscribers"].append(cid)
+    return state
 
 
 def save_state(state: dict) -> None:
@@ -410,7 +427,7 @@ async def tick(context: ContextTypes.DEFAULT_TYPE) -> None:
         text = (
             day_message(now.date(), now, morning=True)
             if kind == "morning"
-            else reminder_message(lesson, REMIND_MIN)
+            else reminder_message(lesson, max(1, round((lesson.start_dt(now.date()) - now).total_seconds() / 60)))
         )
         for cid in list(state["subscribers"]):
             try:
@@ -435,12 +452,38 @@ async def post_init(app: Application) -> None:
     ])
 
 
+class _Health(BaseHTTPRequestHandler):
+    def do_GET(self):  # UptimeRobot shu manzilni har 5 daqiqada chaqiradi
+        body = b'{"ok":true}'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    do_HEAD = do_GET
+
+    def log_message(self, *args):  # jim tursin
+        pass
+
+
+def start_health_server() -> None:
+    """Render bepul web servisi port ochilishini va tashqaridan so'rov kelib turishini talab qiladi."""
+    server = HTTPServer(("0.0.0.0", PORT), _Health)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    log.info("Health server %s-portda", PORT)
+
+
 def main() -> None:
     logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
+    # httpx har so'rovda manzilni (ichida bot tokeni bor) logga yozadi — buni o'chiramiz
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     token = os.getenv("BOT_TOKEN")
     if not token:
         raise SystemExit("BOT_TOKEN topilmadi. .env faylini yarating (.env.example ga qarang).")
 
+    start_health_server()
     app = Application.builder().token(token).post_init(post_init).build()
     app.bot_data["state"] = load_state()
 
