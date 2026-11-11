@@ -1,4 +1,4 @@
-"""Excel jadvaldan bitta guruhning darslarini schedule.json ga chiqaradi.
+"""Excel jadvaldan bitta guruhning darslarini schedule.json ga, barcha xonalar bandligini rooms.json ga chiqaradi.
 
 Ishlatish:
     python extract_schedule.py TimeTable.xlsx 25-407
@@ -69,6 +69,27 @@ def read_block(ws, top, cols, kind, match):
     return out
 
 
+def rooms_data(wb):
+    """Barcha guruhlar bo'yicha: qaysi kun va para vaqtida qaysi xona band. Takrorlar bir marta yoziladi."""
+    busy, rooms, slots = set(), set(), set()
+    for ws in wb:
+        if not any(c.value in DAYS for c in ws[1]):
+            continue
+        cols = day_columns(ws)
+        for _name, top in blocks(ws):
+            for cc, (day, start, end) in cols.items():
+                room = str(ws.cell(top + 2, cc).value or "").strip()
+                slots.add((start, end))
+                if ws.cell(top, cc).value and room:
+                    busy.add((day, start, end, room))
+                    rooms.add(room)
+    return {
+        "rooms": sorted(rooms),
+        "slots": sorted(slots),
+        "busy": sorted(busy),
+    }
+
+
 def main(path, group):
     wb = openpyxl.load_workbook(path, data_only=True)
     lessons = []
@@ -92,6 +113,8 @@ def main(path, group):
     uniq.sort(key=lambda l: (l["day"], l["start"]))
     with open("schedule.json", "w", encoding="utf-8") as f:
         json.dump({"group": group, "lessons": uniq}, f, ensure_ascii=False, indent=2)
+    with open("rooms.json", "w", encoding="utf-8") as f:
+        json.dump(rooms_data(wb), f, ensure_ascii=False)
     for l in uniq:
         print(f'{DAYS[l["day"]][:3]} {l["start"]}-{l["end"]}  {l["subject"]:<50} {l["teacher"]:<28} {l["room"]}')
     print(f"\nJami: {len(uniq)} ta dars")

@@ -57,6 +57,7 @@ MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun",
 
 BTN_TODAY, BTN_TOMORROW = "📅 Bugun", "🌅 Ertaga"
 BTN_WEEK, BTN_NEXT = "🗓 Bu hafta", "⏭ Keyingi dars"
+BTN_ROOMS = "🚪 Bo'sh xonalar"
 
 SUBJECT_ICONS = [
     ("python", "🐍"), ("java", "☕"), ("big data", "📊"), ("database", "🗄"),
@@ -162,6 +163,83 @@ def next_lesson(now: datetime) -> tuple[date, Lesson] | None:
             if l.start_dt(d) > now:
                 return d, l
     return None
+
+
+# --------------------------------------------------------------------------- #
+#  Xonalar bandligi (rooms.json — barcha guruhlarning jadvalidan)
+# --------------------------------------------------------------------------- #
+def load_rooms(path: Path = BASE / "rooms.json") -> tuple[list[str], list[tuple[time, time]], set[tuple]]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return [], [], set()
+    slots = [(time.fromisoformat(a), time.fromisoformat(b)) for a, b in data["slots"]]
+    busy = {(d, a, b, r) for d, a, b, r in data["busy"]}
+    return data["rooms"], slots, busy
+
+
+ROOMS, SLOTS, BUSY = load_rooms()
+
+
+def room_label(room: str) -> str:
+    m = re.match(r"^(\d+)\s*(.*)$", room)
+    if not m:
+        return room
+    num, rest = m.groups()
+    rest = rest.lower()
+    if "lecture" in rest:
+        return f"{num} (ma'ruza)"
+    if "lab" in rest:
+        return f"{num} (lab)"
+    return num
+
+
+def free_rooms_in(wd: int, start: time, end: time) -> list[str]:
+    """Shu kun va para vaqtida hech bir guruhga band qilinmagan xonalar."""
+    a, b = f"{start:%H:%M}", f"{end:%H:%M}"
+    return [r for r in ROOMS if (wd, a, b, r) not in BUSY]
+
+
+def rooms_message(d: date, now: datetime) -> str:
+    """Guruhning shu kundagi oxirgi darsi tugagach, kun oxirigacha bo'sh qoladigan xonalar."""
+    head = f"<b>🚪 BO'SH XONALAR</b>\n📆 <i>{fmt_date(d)}</i>"
+    if not ROOMS:
+        return f"{head}\n\n⚠️ Xonalar ma'lumoti topilmadi (rooms.json)."
+    items = lessons_on(d)
+    last_end = items[-1].end if items else None
+    if items:
+        info = f"⏱ {GROUP} guruhi darsi <b>{last_end:%H:%M}</b> da tugaydi."
+    else:
+        info = f"🎉 Bu kuni {GROUP} guruhida dars yo'q — butun kun bo'yicha:"
+    is_today = d == now.date()
+    wd = d.weekday()
+    slots = [
+        (a, b) for a, b in SLOTS
+        if (last_end is None or a >= last_end) and (not is_today or b > now.time())
+    ]
+    if not slots:
+        return f"{head}\n{info}\n\n😔 Shu kunga bo'sh vaqt qolmadi."
+
+    per_slot = {(a, b): set(free_rooms_in(wd, a, b)) for a, b in slots}
+    common = set.intersection(*per_slot.values())
+    order = {r: i for i, r in enumerate(ROOMS)}
+    out = [head, info, ""]
+    if common:
+        out.append(f"✅ <b>{slots[0][0]:%H:%M} dan {slots[-1][1]:%H:%M} gacha bo'sh:</b>")
+        out.append("<blockquote>" + e(", ".join(room_label(r) for r in sorted(common, key=order.get))) + "</blockquote>")
+    else:
+        out.append(f"😕 {slots[0][0]:%H:%M} dan {slots[-1][1]:%H:%M} gacha doim bo'sh xona yo'q.")
+    if len(slots) > 1:
+        rows = []
+        for (a, b), free in per_slot.items():
+            extra = sorted(free - common, key=order.get)
+            if extra:
+                rows.append(f"🕒 <b>{a:%H:%M}–{b:%H:%M}</b> · " + e(", ".join(room_label(r) for r in extra)))
+        if rows:
+            out.append("\n<i>Faqat ayrim vaqtlarda bo'sh:</i>")
+            out.append("<blockquote>" + "\n".join(rows) + "</blockquote>")
+    out.append("\n<i>ℹ️ Xonalar jadvaldagi darslarga qarab hisoblanadi; boshqa tadbirlar hisobga olinmaydi.</i>")
+    return "\n".join(out)
 
 
 # --------------------------------------------------------------------------- #
@@ -299,7 +377,7 @@ WELCOME = (
     "🌅 har kuni <b>{morning:%H:%M}</b> da bugungi darslarni yuboraman\n"
     "⏰ har bir dars boshlanishidan <b>{remind} daqiqa</b> oldin eslataman\n\n"
     "Quyidagi tugmalar yoki buyruqlardan foydalaning:\n"
-    "/bugun · /ertaga · /hafta · /keyingi\n"
+    "/bugun · /ertaga · /hafta · /keyingi · /xonalar\n"
     "/toxtatish — eslatmalarni o'chirish\n\n"
     "✅ Eslatmalar <b>yoqildi</b>."
 )
@@ -361,7 +439,7 @@ def due_events(now: datetime, sent: set[str]) -> list[tuple[str, str, Lesson | N
 #  Telegram
 # --------------------------------------------------------------------------- #
 KEYBOARD = ReplyKeyboardMarkup(
-    [[BTN_TODAY, BTN_TOMORROW], [BTN_WEEK, BTN_NEXT]],
+    [[BTN_TODAY, BTN_TOMORROW], [BTN_WEEK, BTN_NEXT], [BTN_ROOMS]],
     resize_keyboard=True,
     input_field_placeholder="Tugmani tanlang 👇",
 )
@@ -414,6 +492,11 @@ async def cmd_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await reply(update, next_message(now_local()))
 
 
+async def cmd_rooms(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    n = now_local()
+    await reply(update, rooms_message(n.date(), n))
+
+
 async def tick(context: ContextTypes.DEFAULT_TYPE) -> None:
     state = context.application.bot_data["state"]
     now = now_local()
@@ -447,6 +530,7 @@ async def post_init(app: Application) -> None:
         BotCommand("ertaga", "🌅 Ertangi darslar"),
         BotCommand("hafta", "🗓 Bu haftaning darslari"),
         BotCommand("keyingi", "⏭ Keyingi dars"),
+        BotCommand("xonalar", "🚪 Bo'sh xonalar"),
         BotCommand("toxtatish", "🔕 Eslatmalarni o'chirish"),
         BotCommand("start", "🔔 Botni ishga tushirish / eslatmalarni yoqish"),
     ])
@@ -493,8 +577,9 @@ def main() -> None:
     app.add_handler(CommandHandler("ertaga", cmd_tomorrow))
     app.add_handler(CommandHandler("hafta", cmd_week))
     app.add_handler(CommandHandler("keyingi", cmd_next))
+    app.add_handler(CommandHandler("xonalar", cmd_rooms))
     for label, fn in [(BTN_TODAY, cmd_today), (BTN_TOMORROW, cmd_tomorrow),
-                      (BTN_WEEK, cmd_week), (BTN_NEXT, cmd_next)]:
+                      (BTN_WEEK, cmd_week), (BTN_NEXT, cmd_next), (BTN_ROOMS, cmd_rooms)]:
         app.add_handler(MessageHandler(filters.Text([label]), fn))
 
     app.job_queue.run_repeating(tick, interval=TICK_SECONDS, first=5)

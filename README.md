@@ -24,6 +24,7 @@ Botga kirib `/start` bosing — eslatmalar yoqiladi.
 |---|---|
 | /start | botni yoqish, eslatmalarga obuna |
 | /bugun, /ertaga, /hafta, /keyingi | darslarni ko'rish |
+| /xonalar (🚪 Bo'sh xonalar) | bugun guruh darsi tugagach kun oxirigacha bo'sh xonalar |
 | /toxtatish | eslatmalarni o'chirish |
 
 ## Sozlamalar (`.env`)
@@ -34,4 +35,15 @@ Botga kirib `/start` bosing — eslatmalar yoqiladi.
 ```bash
 python extract_schedule.py YangiJadval.xlsx 25-407
 ```
-`schedule.json` yangilanadi, so'ng botni qayta ishga tushiring.
+`schedule.json` (guruh darslari) va `rooms.json` (barcha guruhlar bo'yicha xonalar bandligi) yangilanadi. So'ng GitHub'ga push qilib, Render'da Manual Deploy bosing.
+
+## 24/7 ishlatish (Render, bepul)
+1. Kodni GitHub'ga yuklang (`.env` yuklanmaydi).
+2. Render → New → **Web Service** → shu repo. Runtime: **Python 3**.
+   Build Command: `pip install -r requirements.txt`  ·  Start Command: `python bot.py`  ·  Plan: **Free**.
+3. Environment bo'limida: `BOT_TOKEN` (BotFather tokeni) va `SUBSCRIBERS` (sizning Telegram ID raqamingiz).
+4. UptimeRobot'da `https://<servis-nomi>.onrender.com/` manzilini har 5 daqiqada tekshiradigan monitor qo'shing
+   (Render bepul servisi 15 daqiqada uxlab qoladi, monitor uni uyg'oq tutadi).
+5. Shu bot tokeni bilan boshqa joyda (kompyuteringizda) `bot.py` ishlamayotgan bo'lsin, aks holda "409 Conflict" xatosi chiqadi.
+
+> Render bepul tarifida fayllar qayta ishga tushganda o'chadi, shuning uchun doimiy obunachilar `SUBSCRIBERS` da turadi.
